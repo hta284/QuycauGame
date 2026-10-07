@@ -23,7 +23,11 @@ export class Game {
     this.isPaused = true;
     this.clock = new THREE.Clock();
     this.brightness = Number(localStorage.getItem('quycau-brightness') || '1');
-    this.storyState = 'INTRO';
+    this.storyState = 'DAY_MORNING';
+    this.dayVisits = new Set();
+    this.afterNightmarePending = false;
+    this.midnightSequenceSeen = false;
+    this.midnightHuntStarted = false;
 
     // Scene & Engine
     this.canvas = document.getElementById('webgl-canvas');
@@ -36,6 +40,7 @@ export class Game {
     this.villageEnv = new VillageEnvironment(this.scene);
     this.player = new Player(this.camera, this.scene);
     this.quyCau = new QuyCau(this.scene);
+    this.quyCau.group.visible = false;
     this.npcs = [];
     this.setupNPCs();
 
@@ -46,6 +51,7 @@ export class Game {
     this.dialogueSystem = new DialogueSystem(this.questSystem);
     this.horrorEvents = new HorrorEventSystem(this.scene, this.quyCau);
     this.areaManager = new AreaManager(this.scene, this.camera, this.playerController, this.villageEnv, this.questSystem);
+    this.areaManager.preloadWorld();
     this.chapterManager = new ChapterManager(this.areaManager, this.questSystem);
     this.deathSystem = new DeathSystem(this);
     this.bossFight = new BossFightSystem(this.scene, this.quyCau, this.villageEnv, this.questSystem, this.deathSystem);
@@ -70,15 +76,19 @@ export class Game {
   setupRenderer() {
     this.renderer = new THREE.WebGLRenderer({
       canvas: this.canvas,
-      antialias: true,
+      antialias: false,
       powerPreference: 'high-performance'
     });
-    this.renderer.setSize(window.innerWidth, window.innerHeight);
-    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    this.renderer.setPixelRatio(1);
+    this.resizeRenderer();
     this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
     this.renderer.toneMappingExposure = 0.95;
     this.renderer.shadowMap.enabled = true;
     this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+  }
+
+  resizeRenderer() {
+    this.renderer.setSize(window.innerWidth, window.innerHeight, false);
   }
 
   setupCamera() {
@@ -88,24 +98,30 @@ export class Game {
   }
 
   setupAtmosphere() {
-    // Spooky Vietnamese Night Fog
-    this.fogColor = new THREE.Color(0x0a0c10);
-    this.scene.fog = new THREE.FogExp2(this.fogColor, 0.022);
+    this.fogColor = new THREE.Color(0xb7c4a0);
+    this.scene.fog = new THREE.FogExp2(this.fogColor, 0.004);
     this.scene.background = this.fogColor;
 
-    // Ambient Moonlight
-    this.ambientLight = new THREE.AmbientLight(0x182030, 0.45);
+    this.ambientLight = new THREE.AmbientLight(0xd2d9b2, 0.72);
     this.scene.add(this.ambientLight);
 
-    // Distant Moon directional light
-    this.moonLight = new THREE.DirectionalLight(0x405575, 0.85);
+    this.moonLight = new THREE.DirectionalLight(0xffe3ae, 1.15);
     this.moonLight.position.set(25, 45, 20);
     this.moonLight.castShadow = true;
     this.moonLight.shadow.mapSize.width = 1024;
     this.moonLight.shadow.mapSize.height = 1024;
     this.scene.add(this.moonLight);
 
+    this.atmosphereProfile = {
+      ambient: 0.72,
+      directional: 1.15,
+      fog: 0.004,
+      exposure: 1.05
+    };
     this.setBrightness(this.brightness);
+    this.storyState = 'DAY_MORNING';
+    const timeText = document.getElementById('time-text');
+    if (timeText) timeText.innerText = 'BUỔI SÁNG';
   }
 
   setBrightness(value) {
@@ -113,14 +129,47 @@ export class Game {
     this.brightness = normalized;
     localStorage.setItem('quycau-brightness', String(normalized));
 
-    this.renderer.toneMappingExposure = 0.8 * normalized;
-    this.ambientLight.intensity = 0.45 * normalized;
-    this.moonLight.intensity = 0.85 * normalized;
-
-    const fogIntensity = 0.022 * normalized;
+    this.renderer.toneMappingExposure = this.atmosphereProfile.exposure * normalized;
+    this.ambientLight.intensity = this.atmosphereProfile.ambient * normalized;
+    this.moonLight.intensity = this.atmosphereProfile.directional * normalized;
     if (this.scene.fog) {
-      this.scene.fog.density = fogIntensity;
+      this.scene.fog.density = this.atmosphereProfile.fog;
     }
+  }
+
+  setTimeOfDay({ background, light, ambient, directional, fog, exposure }) {
+    this.fogColor.setHex(background);
+    this.scene.background = this.fogColor;
+    this.moonLight.color.setHex(light);
+    this.atmosphereProfile = { ambient, directional, fog, exposure };
+    this.setBrightness(this.brightness);
+  }
+
+  setWorldState(state) {
+    const profiles = {
+      DAY_MORNING: { background: 0xb7c4a0, light: 0xffe3ae, ambient: 0.72, directional: 1.15, fog: 0.004, exposure: 1.05, label: 'BUỔI SÁNG' },
+      DAY_NOON: { background: 0xc4c89f, light: 0xffedc4, ambient: 0.82, directional: 1.3, fog: 0.003, exposure: 1.08, label: 'BAN NGÀY' },
+      DAY_AFTERNOON: { background: 0xa8ad88, light: 0xf2c58e, ambient: 0.68, directional: 1.0, fog: 0.005, exposure: 1, label: 'BUỔI CHIỀU' },
+      EVENING: { background: 0x695449, light: 0xd68a54, ambient: 0.55, directional: 0.72, fog: 0.011, exposure: 0.95, label: 'HOÀNG HÔN' },
+      NIGHT: { background: 0x101923, light: 0x536b8b, ambient: 0.38, directional: 0.65, fog: 0.022, exposure: 0.88, label: 'ĐÊM SÂU' },
+      MIDNIGHT: { background: 0x101923, light: 0x536b8b, ambient: 0.32, directional: 0.52, fog: 0.024, exposure: 0.82, label: '02:13 AM' },
+      HORROR: { background: 0x141018, light: 0x76616b, ambient: 0.3, directional: 0.48, fog: 0.026, exposure: 0.82, label: 'ĐÊM SÂU' },
+      CHASE: { background: 0x100d12, light: 0x66525d, ambient: 0.26, directional: 0.42, fog: 0.028, exposure: 0.8, label: 'ĐANG BỊ SĂN ĐUỔI' },
+      DAY_AFTER_NIGHTMARE: { background: 0xb89b68, light: 0xffd294, ambient: 0.78, directional: 0.95, fog: 0.006, exposure: 1.02, label: 'BÌNH MINH' },
+      FINAL: { background: 0x141018, light: 0x76616b, ambient: 0.28, directional: 0.45, fog: 0.026, exposure: 0.82, label: 'ĐÊM CUỐI' },
+      ENDING: { background: 0xb89b68, light: 0xffd294, ambient: 0.78, directional: 0.95, fog: 0.006, exposure: 1.02, label: 'BÌNH MINH' }
+    };
+    const profile = profiles[state];
+    if (!profile) throw new Error(`World state không hợp lệ: ${state}`);
+    this.storyState = state;
+    if (this.areaManager) this.areaManager.storyState = state;
+    this.setTimeOfDay(profile);
+    const timeText = document.getElementById('time-text');
+    if (timeText) timeText.innerText = profile.label;
+    if (['DAY_MORNING', 'DAY_NOON', 'DAY_AFTERNOON', 'EVENING', 'NIGHT', 'MIDNIGHT', 'DAY_AFTER_NIGHTMARE'].includes(state)) {
+      this.quyCau.group.visible = false;
+    }
+    if (state === 'DAY_AFTER_NIGHTMARE') this.playerController.enabled = true;
   }
 
   setupNPCs() {
@@ -204,18 +253,44 @@ export class Game {
           return;
         }
 
+        if (target.npc.id === 'ba_lan' && this.afterNightmarePending) {
+          this.afterNightmarePending = false;
+          this.setWorldState('HORROR');
+          this.setQuestObjective('Lần theo Mảnh Vải (CLUE 07) ở cửa rừng để tìm Lan Chi.');
+          this.dialogueSystem.startDialogue('ba_lan', 'after_nightmare');
+          this.autoSave();
+          return;
+        }
+        if (target.npc.id === 'ba_lan' && this.questSystem.getCurrentQuest()?.id === 'Q02') {
+          this.dayVisits.add('ba_lan');
+        }
+        if (target.npc.id === 'ong_tu' || target.npc.id === 'shopkeeper') {
+          this.dayVisits.add(target.npc.id);
+          if (this.questSystem.getCurrentQuest()?.id === 'Q03' &&
+              this.dayVisits.has('ong_tu') && this.dayVisits.has('shopkeeper')) {
+            this.questSystem.completeQuest('Q03');
+          }
+        }
         this.dialogueSystem.startDialogue(target.npc.dialogueKey);
       }
 
       // 2. Clearly marked area gateways
       else if (target.type === 'gateway') {
         if (this.areaManager.canEnterArea(target.targetAreaId)) {
-          this.areaManager.transitionTo(target.targetAreaId, target.targetSpawn);
+          this.areaManager.transitionTo(target.targetAreaId, target.targetSpawn, true);
         }
+      }
+
+      else if (target.type === 'bed') {
+        this.startMidnightSequence();
       }
 
       // 2. Clue Collection
       else if (target.type === 'clue') {
+        if (target.id === 'CLUE_07' && !this.midnightSequenceSeen) {
+          this.questSystem.showToast('CHƯA THỂ THEO DẤU VẾT', 'Hãy trở về nhà nghỉ ngơi; có thể tiếp tục điều tra sau khi trời tối.');
+          return;
+        }
         this.evidenceSystem.collectClue(target.id);
 
         // Advance specific quests on finding key clues
@@ -255,38 +330,27 @@ export class Game {
   }
 
   setupQuestHooks() {
-    this.questSystem.onQuestAdvanced((currentQ) => {
-      this.autoSave();
-
-      // Atmospheric changes based on quest progression
-      if (currentQ.id === 'Q01') {
-        this.storyState = 'DAY';
-        this.scene.fog.color.setHex(0x0d1117);
-        this.moonLight.color.setHex(0x7382a4);
-        document.getElementById('time-text').innerText = 'BAN NGÀY';
-      } else if (currentQ.id === 'Q03') {
-        this.storyState = 'EVENING';
-        this.scene.fog.color.setHex(0x090d14);
-        this.moonLight.color.setHex(0x4f5e79);
-        document.getElementById('time-text').innerText = 'CHIỀU TỐI';
-      } else if (currentQ.id === 'Q06') {
-        this.storyState = 'NIGHT';
-        this.scene.fog.color.setHex(0x18080c);
-        this.moonLight.color.setHex(0x661818);
-        document.getElementById('time-text').innerText = 'ĐÊM SÂU';
+    this.questSystem.onQuestAdvanced((currentQ, completedQ) => {
+      const completedId = completedQ?.id;
+      if (completedId === 'Q01') {
+        this.setWorldState('DAY_NOON');
+      } else if (completedId === 'Q02' || completedId === 'Q03' || completedId === 'Q04') {
+        this.setWorldState('DAY_AFTERNOON');
+      } else if (completedId === 'Q05') {
+        this.setWorldState('EVENING');
+      } else if (completedId === 'Q06') {
+        this.setWorldState('NIGHT');
         audioManager.playDogBark(false);
       } else if (currentQ.id === 'Q07' || currentQ.id === 'Q08') {
-        this.storyState = 'HORROR';
-        if (!this.bossFight.isActive && !this.bossFight.isDefeated) {
-          this.bossFight.startBossFight();
-        }
+        this.setWorldState('HORROR');
       } else if (currentQ.id === 'Q09') {
-        this.storyState = 'ENDING';
-        this.scene.fog.color.setHex(0x302518);
-        this.moonLight.color.setHex(0xbfa573);
-        this.ambientLight.intensity = 1.0;
-        document.getElementById('time-text').innerText = 'BÌNH MINH';
+        this.setWorldState('ENDING');
       }
+      if (currentQ.id === 'Q03' && this.dayVisits.has('ong_tu') && this.dayVisits.has('shopkeeper')) {
+        queueMicrotask(() => this.questSystem.completeQuest('Q03'));
+      }
+      this.updateChapterTag(currentQ);
+      this.autoSave();
     });
   }
 
@@ -305,11 +369,12 @@ export class Game {
     this.teleportPlayer(0, 1.7, 45);
     this.areaManager.currentAreaId = 'AREA_GATE_HOME';
     this.areaManager.loadAreaObjects('AREA_GATE_HOME');
+    this.setWorldState('DAY_MORNING');
 
     this.introSequence.play(() => {
       this.isPaused = false;
+      this.setWorldState('DAY_MORNING');
       this.chapterManager.startChapter(1);
-      this.playerController.lockPointer();
     });
   }
 
@@ -372,12 +437,55 @@ export class Game {
     if (data.questIndex !== undefined) {
       this.questSystem.setQuestByIndex(data.questIndex);
     }
+    const savedStoryState = data.storyState || 'DAY_MORNING';
+    const migratedStoryState = savedStoryState === 'INTRO' || savedStoryState === 'DAY'
+      ? 'DAY_MORNING'
+      : savedStoryState === 'MIDNIGHT'
+        ? 'HORROR'
+        : savedStoryState;
+    try {
+      this.setWorldState(migratedStoryState);
+    } catch (error) {
+      console.warn('Save contains an unknown story phase; resuming in the morning.', error);
+      this.setWorldState('DAY_MORNING');
+    }
+    this.dayVisits = new Set(Array.isArray(data.dayVisits) ? data.dayVisits : []);
+    this.afterNightmarePending = Boolean(data.afterNightmarePending);
+    this.midnightSequenceSeen = Boolean(data.midnightSequenceSeen) ||
+      (!data.storyState && Number(data.questIndex) >= 5);
+    this.midnightHuntStarted = Boolean(data.midnightHuntStarted);
+    this.updateChapterTag(this.questSystem.getCurrentQuest());
+    if (this.questSystem.getCurrentQuest()?.id === 'Q06') {
+      if (this.afterNightmarePending) {
+        this.setQuestObjective('Kiểm tra dấu chân ngoài cửa, rồi hỏi Bà Lan về giấc mơ.');
+      } else if (this.midnightSequenceSeen) {
+        this.setQuestObjective('Lần theo Mảnh Vải (CLUE 07) ở cửa rừng để tìm Lan Chi.');
+      }
+    }
+    if (this.midnightHuntStarted) {
+      this.quyCau.group.position.set(this.camera.position.x + 13, 0, this.camera.position.z - 16);
+      this.quyCau.group.visible = true;
+      this.quyCau.state = 'CHASE';
+      audioManager.startChaseMusic();
+    }
+    this.bossFight.isDefeated = Boolean(data.bossDefeated);
+    if (this.bossFight.isDefeated) {
+      this.bossFight.isActive = false;
+      this.quyCau.group.visible = false;
+      this.areaManager.areaCache.get('AREA_SHRINE_BOSS')?.npcs
+        .find(npc => npc.id === 'lan_chi')?.freeFromTraps();
+    }
     this.playerController.lockPointer();
   }
 
   autoSave() {
     const data = {
       questIndex: this.questSystem.currentIndex,
+      storyState: this.storyState,
+      dayVisits: [...this.dayVisits],
+      afterNightmarePending: this.afterNightmarePending,
+      midnightSequenceSeen: this.midnightSequenceSeen,
+      midnightHuntStarted: this.midnightHuntStarted,
       currentArea: this.areaManager.currentAreaId,
       clueIds: this.evidenceSystem.clues.filter(c => c.collected).map(c => c.id),
       playerPosition: {
@@ -390,9 +498,118 @@ export class Game {
     SaveSystem.save(data);
   }
 
+  setQuestObjective(objective) {
+    const quest = this.questSystem.getCurrentQuest();
+    if (!quest) return;
+    quest.objective = objective;
+    this.questSystem.updateHUD();
+  }
+
+  updateChapterTag(quest) {
+    if (!quest) return;
+    const chapters = {
+      Q01: 'CHƯƠNG 01: TRỞ VỀ',
+      Q02: 'CHƯƠNG 01: TRỞ VỀ',
+      Q03: 'CHƯƠNG 02: LỜI ĐỒN',
+      Q04: 'CHƯƠNG 03: DẤU VẾT',
+      Q05: 'CHƯƠNG 04: CỬA RỪNG',
+      Q06: 'CHƯƠNG 04: CỬA RỪNG',
+      Q07: 'CHƯƠNG 05: MIẾU CŨ',
+      Q08: 'CHƯƠNG 05: MIẾU CŨ',
+      Q09: 'CHƯƠNG 06: BÌNH MINH'
+    };
+    const tag = document.getElementById('quest-chapter-tag');
+    if (tag) tag.innerText = chapters[quest.id] || 'CHƯƠNG 01: TRỞ VỀ';
+  }
+
+  updateRouteIndicator() {
+    const questId = this.questSystem.getCurrentQuest()?.id;
+    let route;
+    if (questId === 'Q01') route = 'LỐI ĐI: NHÀ CŨ (BÊN TRÁI CỔNG)';
+    else if (questId === 'Q02') route = 'LỐI ĐI: NHÀ BÀ LAN (BÊN PHẢI)';
+    else if (questId === 'Q03') {
+      route = !this.dayVisits.has('shopkeeper')
+        ? 'LỐI ĐI: CHỢ CẠNH GIẾNG LÀNG'
+        : 'LỐI ĐI: ĐÌNH LÀNG & ÔNG TƯ';
+    } else if (questId === 'Q04') route = 'LỐI ĐI: NGHĨA ĐỊA SAU ĐÌNH';
+    else if (questId === 'Q05') route = 'LỐI ĐI: CỬA RỪNG THEO ĐƯỜNG ĐẤT';
+    else if (questId === 'Q06' && this.afterNightmarePending) route = 'LỐI ĐI: HỎI BÀ LAN';
+    else if (questId === 'Q06' && !this.midnightSequenceSeen) route = 'VỀ NHÀ NGHỈ NGƠI';
+    else if (questId === 'Q06') route = 'LỐI ĐI: CỬA RỪNG (THEO DẤU CHÂN)';
+    else if (questId === 'Q09') route = 'LỐI ĐI: CỔNG LÀNG';
+    else route = 'LỐI ĐI: MIẾU CŨ';
+
+    const routeText = this.areaManager.routeIndicatorText;
+    if (routeText && routeText.innerText !== route) routeText.innerText = route;
+  }
+
   triggerEnding() {
     this.isPaused = true;
     this.ui.showEndingScreen();
+  }
+
+  startMidnightSequence() {
+    if (this.storyState !== 'EVENING') {
+      this.questSystem.showToast('CHƯA THỂ NGHỈ NGƠI', 'Hãy hoàn thành việc trong ngày và trở về nhà khi trời tối.');
+      return;
+    }
+    if (this.midnightSequenceSeen) {
+      this.questSystem.showToast('ĐÊM ĐÃ XUỐNG', 'Hãy kiểm tra con đường dẫn về phía giếng làng.');
+      return;
+    }
+
+    this.midnightSequenceSeen = true;
+    this.isPaused = true;
+    this.playerController.enabled = false;
+    this.setWorldState('MIDNIGHT');
+    this.setQuestObjective('Tỉnh dậy lúc 02:13 và ra ngoài kiểm tra tiếng động.');
+    const overlay = document.createElement('div');
+    overlay.className = 'night-cutscene';
+    overlay.innerHTML = '<div><strong>02:13 AM</strong><span>Tiếng móng chân dừng lại bên ngoài cửa.</span></div>';
+    document.body.appendChild(overlay);
+    this.autoSave();
+
+    setTimeout(() => {
+      overlay.remove();
+      this.playerController.enabled = true;
+      this.isPaused = false;
+      this.setWorldState('HORROR');
+      audioManager.playHeavyBreathing();
+      this.horrorEvents.triggerMidnightShadow(this.camera.position);
+      this.questSystem.showToast('CÓ TIẾNG ĐỘNG NGOÀI SÂN', 'Nhìn về phía cửa rồi lần theo con đường làng.');
+    }, 2400);
+  }
+
+  startNightHunt() {
+    if (this.midnightHuntStarted || !this.midnightSequenceSeen ||
+        this.questSystem.getCurrentQuest()?.id !== 'Q06' ||
+        this.areaManager.currentAreaId === 'AREA_SHRINE_BOSS') return;
+    this.midnightHuntStarted = true;
+    this.setWorldState('CHASE');
+    this.setQuestObjective('Rời khỏi sân nhà và lần theo dấu vết của Lan Chi trong đêm.');
+    this.quyCau.group.position.set(this.camera.position.x + 13, 0, this.camera.position.z - 16);
+    this.quyCau.group.visible = true;
+    this.quyCau.state = 'CHASE';
+    audioManager.startChaseMusic();
+    this.horrorEvents.showThreat('TIẾNG CHÂN ĐANG ĐUỔI SÁT SAU LƯNG!', 5000);
+    this.autoSave();
+  }
+
+  ensureFootprintClue() {
+    const home = this.areaManager.areaCache.get('AREA_GATE_HOME');
+    if (!home || home.interactables.some(item => item.userData.id === 'CLUE_09')) return;
+    const wasHomeActive = this.areaManager.currentAreaId === 'AREA_GATE_HOME';
+    this.villageEnv.createClueItem({
+      id: 'CLUE_09',
+      name: 'Dấu Chân Ướt Ngoài Cửa',
+      position: new THREE.Vector3(-18, 0.08, 25.5),
+      parent: home.group,
+      interactablesList: home.interactables
+    });
+    if (!wasHomeActive) {
+      const footprint = home.interactables[home.interactables.length - 1];
+      this.villageEnv.interactables = this.villageEnv.interactables.filter(item => item !== footprint);
+    }
   }
 
   documentUnlock() {
@@ -403,7 +620,7 @@ export class Game {
     window.addEventListener('resize', () => {
       this.camera.aspect = window.innerWidth / window.innerHeight;
       this.camera.updateProjectionMatrix();
-      this.renderer.setSize(window.innerWidth, window.innerHeight);
+      this.resizeRenderer();
     });
   }
 
@@ -420,7 +637,7 @@ export class Game {
       this.interactionSystem.update(this.areaManager.getAllInteractables());
 
       // 3. NPC face player
-      this.npcs.forEach(n => n.update(this.camera.position));
+      this.areaManager.areaNPCs.forEach(n => n.update(this.camera.position, this.storyState, delta));
 
       // 4. Quỷ Cẩu AI
       this.quyCau.update(delta, this.camera.position, moveState ? moveState.isRunning : false);
@@ -429,7 +646,12 @@ export class Game {
       this.bossFight.update(delta, this.camera.position);
 
       // 6. Horror Events spatial triggers
-      this.horrorEvents.update(this.camera.position);
+      if (this.areaManager.currentAreaId !== 'AREA_SHRINE_BOSS') {
+        this.horrorEvents.update(this.camera.position, this.storyState);
+      }
+      if (this.storyState === 'HORROR' && this.midnightSequenceSeen && this.camera.position.z < 12) {
+        this.startNightHunt();
+      }
 
       // 7. Check distance to Quỷ Cẩu for screen tension vignette
       const distToMonster = this.quyCau.group.visible ? this.quyCau.group.position.distanceTo(this.camera.position) : 999;
@@ -438,6 +660,13 @@ export class Game {
 
       // 8. Area transition checks
       this.areaManager.checkAreaTransitions();
+      const currentQuestId = this.questSystem.getCurrentQuest()?.id;
+      if (this.areaManager.currentAreaId === 'AREA_SHRINE_BOSS' &&
+          (currentQuestId === 'Q07' || currentQuestId === 'Q08') &&
+          !this.bossFight.isActive && !this.bossFight.isDefeated) {
+        this.bossFight.startBossFight(currentQuestId === 'Q07');
+      }
+      this.updateRouteIndicator();
 
       // 9. Update HUD
       if (moveState) {

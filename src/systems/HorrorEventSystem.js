@@ -2,6 +2,8 @@ import * as THREE from 'three';
 import { HORROR_EVENTS } from '../data/horrorEvents.js';
 import { audioManager } from '../audio/AudioManager.js';
 
+const ENABLED_STATES = new Set(['NIGHT', 'MIDNIGHT', 'HORROR', 'CHASE', 'FINAL']);
+
 export class HorrorEventSystem {
   constructor(scene, quyCauEntity) {
     this.scene = scene;
@@ -59,6 +61,14 @@ export class HorrorEventSystem {
     }, 50);
   }
 
+  triggerMidnightShadow(playerPosition) {
+    this.triggerEvent2(new THREE.Vector3(
+      playerPosition.x - 3,
+      playerPosition.y,
+      playerPosition.z + 17
+    ));
+  }
+
   // --- EVENT 3: DẤU CHÂN MÁU XUẤT HIỆN ---
   triggerEvent3(pos) {
     if (this.events.EVENT_3_FOOTPRINTS.triggered) return;
@@ -97,18 +107,19 @@ export class HorrorEventSystem {
     this.showThreat("QUỶ CẨU PHÁT HIỆN RA BẠN! HÃY CHẠY MAU!", 5000);
   }
 
-  update(playerPosition) {
+  update(playerPosition, worldState = 'INTRO') {
+    if (!ENABLED_STATES.has(worldState)) return;
+
     const pz = playerPosition.z;
     const px = playerPosition.x;
 
-    // Spatial triggers based on player journey through the village
     if (pz < 30 && pz > 15 && !this.events.EVENT_1_BARK.triggered) {
       this.triggerEvent1();
     } else if (pz < 10 && pz > -5 && !this.events.EVENT_2_SHADOW.triggered) {
       this.triggerEvent2(playerPosition);
     } else if (px > 18 && pz < -45 && !this.events.EVENT_4_RED_EYES.triggered) {
       this.triggerEvent4();
-    } else if (pz < -65 && !this.events.EVENT_5_SURPRISE_CHASE.triggered) {
+    } else if (worldState === 'CHASE' && pz < -65 && !this.events.EVENT_5_SURPRISE_CHASE.triggered) {
       this.triggerEvent5(playerPosition);
     }
   }

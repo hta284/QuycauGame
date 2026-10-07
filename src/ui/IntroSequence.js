@@ -1,12 +1,12 @@
 import { audioManager } from '../audio/AudioManager.js';
 
 export const INTRO_LINES = [
-  "Đã nhiều năm tôi chưa quay lại nơi này...",
-  "Cho đến đêm hôm đó...",
-  "Người thân duy nhất còn lại của tôi biến mất.",
-  "Người trong làng nói rằng họ không biết gì...",
-  "Nhưng tất cả đều nhắc tôi một điều...",
-  "Đừng ra ngoài sau khi trời tối."
+  "Đã nhiều năm tôi chưa quay lại ngôi làng này...",
+  "Lan Chi rời nhà trước khi tôi kịp gặp em.",
+  "Ngôi làng buổi sáng vẫn yên bình như tôi nhớ.",
+  "Nhưng chẳng ai biết em đã đi đâu.",
+  "Tôi sẽ hỏi thăm những người hàng xóm.",
+  "Mặt trời vẫn còn trên cao."
 ];
 
 export class IntroSequence {
@@ -69,7 +69,6 @@ export class IntroSequence {
       this.textEl.style.opacity = '0';
       setTimeout(() => {
         this.titleRevealEl.classList.remove('hidden');
-        audioManager.playDogBark(true);
       }, 800);
     }, 32000));
 

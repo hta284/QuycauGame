@@ -17,7 +17,7 @@ export class DialogueSystem {
     this.optionsEl = document.getElementById('dialogue-options');
   }
 
-  startDialogue(dialogueKey) {
+  startDialogue(dialogueKey, nodeKey = 'default') {
     const data = DIALOGUES[dialogueKey];
     if (!data) return;
 
@@ -30,7 +30,7 @@ export class DialogueSystem {
     this.portraitEl.src = data.portrait;
     this.speakerEl.innerText = data.name;
 
-    this.showNode('default');
+    this.showNode(nodeKey);
   }
 
   showNode(nodeKey) {

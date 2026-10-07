@@ -49,21 +49,23 @@ export class QuyCau {
     this.scene.add(this.group);
 
     this.isVisible = true;
-    this.group.visible = this.isVisible;
+    this.group.visible = false;
   }
 
   createModel() {
     // Stylized Vietnamese Folklore Horror: Quỷ Cẩu
     // Emaciated black canine with elongated unnatural limbs and glowing crimson/yellow eyes
     const darkFurMat = new THREE.MeshStandardMaterial({
-      color: 0x0c0b0c,
-      roughness: 0.95,
-      metalness: 0.1
+      color: 0x08090b,
+      roughness: 1,
+      metalness: 0,
+      flatShading: true
     });
 
     const spineMat = new THREE.MeshStandardMaterial({
-      color: 0x1f1917,
-      roughness: 0.85
+      color: 0x171619,
+      roughness: 1,
+      flatShading: true
     });
 
     // 1. Ribcage & Hunched Spine (Hóp sâu, lộ đốt sống nhô cao)
@@ -117,7 +119,7 @@ export class QuyCau {
     // Fiery Reflective Glowing Eyes (Mắt quỷ phản chiếu ánh lửa)
     const eyeMat = new THREE.MeshBasicMaterial({ color: 0xff1100 });
     [-0.12, 0.12].forEach(x => {
-      const eye = new THREE.Mesh(new THREE.SphereGeometry(0.055, 8, 8), eyeMat);
+      const eye = new THREE.Mesh(new THREE.BoxGeometry(0.075, 0.055, 0.04), eyeMat);
       eye.position.set(x, 0.08, 0.28);
       this.headGroup.add(eye);
     });

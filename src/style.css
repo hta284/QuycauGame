@@ -1467,3 +1467,133 @@ body, html {
   display: none !important;
 }
 
+/* Keep the village palette muted without reducing canvas resolution. */
+:root {
+  --color-bg-dark: #10130f;
+  --color-bg-panel: rgba(15, 19, 16, 0.96);
+  --color-border: #6a6044;
+  --color-border-glow: #8b7355;
+  --color-blood: #7d2722;
+  --color-blood-glow: #ba4232;
+  --color-gold: #d4b879;
+  --color-parchment: #e5dcc4;
+  --color-text-dim: #b0aa96;
+  --color-accent: #a45538;
+  --font-serif: 'Courier New', 'Be Vietnam Pro', monospace;
+  --font-title: 'Courier New', 'Be Vietnam Pro', monospace;
+  --font-sans: 'Be Vietnam Pro', 'Courier New', monospace;
+}
+
+#objective-container,
+.status-item,
+#interaction-prompt,
+.dialogue-box,
+.menu-box,
+.game-over-box,
+.loading-bg,
+#notification-toast,
+#checkpoint-toast,
+.quest-journal-panel {
+  border-radius: 0;
+  backdrop-filter: none;
+  box-shadow: 4px 4px 0 rgba(0, 0, 0, 0.55);
+}
+
+#objective-container,
+.status-item,
+.dialogue-box,
+.menu-box,
+.game-over-box,
+.loading-bg,
+#notification-toast,
+.quest-journal-panel {
+  border: 2px solid var(--color-border);
+  background-color: var(--color-bg-panel);
+}
+
+#crosshair,
+#crosshair.interactable {
+  border-radius: 0;
+}
+
+.btn,
+.btn-menu,
+.btn-primary {
+  border-radius: 0;
+  box-shadow: 3px 3px 0 rgba(0, 0, 0, 0.65);
+  transition: background-color 0.12s steps(2, end), color 0.12s steps(2, end);
+}
+
+.btn-primary {
+  background: #742b25;
+  border-color: #c07855;
+}
+
+.btn-primary:hover {
+  background: #8b3830;
+  box-shadow: 3px 3px 0 rgba(0, 0, 0, 0.65);
+}
+
+.btn-menu:hover:not(:disabled) {
+  transform: none;
+  box-shadow: 3px 3px 0 rgba(0, 0, 0, 0.65);
+}
+
+.game-logo {
+  color: #d5c69e;
+  text-shadow: 3px 3px 0 #4e1918;
+}
+
+.game-sub,
+.subtitle {
+  color: #d4b879;
+}
+
+.dialogue-box {
+  border-width: 3px;
+}
+
+#dialogue-speaker,
+#dialogue-text,
+.quest-item-name,
+.quest-item-desc {
+  font-family: var(--font-sans);
+}
+
+.loading-bg {
+  background-color: rgba(15, 19, 16, 0.98);
+}
+
+.night-cutscene {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  display: grid;
+  place-items: center;
+  background: #050607;
+  animation: night-cutscene-fade 2.4s ease-in-out forwards;
+}
+
+.night-cutscene > div {
+  display: grid;
+  gap: 14px;
+  text-align: center;
+  color: #d6ccb5;
+  font-family: var(--font-sans);
+  letter-spacing: 0.12em;
+}
+
+.night-cutscene strong {
+  color: #c1a982;
+  font-size: clamp(2.6rem, 8vw, 5rem);
+}
+
+.night-cutscene span {
+  font-size: clamp(0.9rem, 2vw, 1.2rem);
+}
+
+@keyframes night-cutscene-fade {
+  0%, 20% { opacity: 0; }
+  35%, 75% { opacity: 1; }
+  100% { opacity: 0; }
+}

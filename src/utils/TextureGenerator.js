@@ -2,6 +2,25 @@ import * as THREE from 'three';
 
 // Procedural Canvas Texture Generator for Vietnamese Rural Aesthetics
 export class TextureGenerator {
+  static createPixelTexture(canvas, width, height = width) {
+    const pixelCanvas = document.createElement('canvas');
+    pixelCanvas.width = width;
+    pixelCanvas.height = height;
+    const context = pixelCanvas.getContext('2d');
+    if (!context) throw new Error('Không thể tạo texture pixel.');
+    context.imageSmoothingEnabled = false;
+    context.drawImage(canvas, 0, 0, width, height);
+
+    const texture = new THREE.CanvasTexture(pixelCanvas);
+    texture.wrapS = THREE.RepeatWrapping;
+    texture.wrapT = THREE.RepeatWrapping;
+    texture.magFilter = THREE.NearestFilter;
+    texture.minFilter = THREE.NearestFilter;
+    texture.generateMipmaps = false;
+    texture.colorSpace = THREE.SRGBColorSpace;
+    return texture;
+  }
+
   static createDirtTexture() {
     const canvas = document.createElement('canvas');
     canvas.width = 512;
@@ -38,10 +57,7 @@ export class TextureGenerator {
       ctx.fill();
     }
 
-    const texture = new THREE.CanvasTexture(canvas);
-    texture.wrapS = THREE.RepeatWrapping;
-    texture.wrapT = THREE.RepeatWrapping;
-    return texture;
+    return this.createPixelTexture(canvas, 64);
   }
 
   static createWoodTexture() {
@@ -77,10 +93,7 @@ export class TextureGenerator {
       ctx.fill();
     }
 
-    const texture = new THREE.CanvasTexture(canvas);
-    texture.wrapS = THREE.RepeatWrapping;
-    texture.wrapT = THREE.RepeatWrapping;
-    return texture;
+    return this.createPixelTexture(canvas, 64);
   }
 
   static createStoneTexture() {
@@ -116,10 +129,7 @@ export class TextureGenerator {
       ctx.fill();
     }
 
-    const texture = new THREE.CanvasTexture(canvas);
-    texture.wrapS = THREE.RepeatWrapping;
-    texture.wrapT = THREE.RepeatWrapping;
-    return texture;
+    return this.createPixelTexture(canvas, 64);
   }
 
   static createRoofTileTexture() {
@@ -150,10 +160,7 @@ export class TextureGenerator {
       }
     }
 
-    const texture = new THREE.CanvasTexture(canvas);
-    texture.wrapS = THREE.RepeatWrapping;
-    texture.wrapT = THREE.RepeatWrapping;
-    return texture;
+    return this.createPixelTexture(canvas, 32);
   }
 
   static createTalismanTexture() {
@@ -181,7 +188,6 @@ export class TextureGenerator {
     ctx.fillText('惡', 128, 340);
     ctx.fillText('滅', 128, 430);
 
-    const texture = new THREE.CanvasTexture(canvas);
-    return texture;
+    return this.createPixelTexture(canvas, 32, 64);
   }
 }

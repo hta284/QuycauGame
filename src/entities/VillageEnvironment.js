@@ -16,10 +16,10 @@ export class VillageEnvironment {
     this.tileTex = TextureGenerator.createRoofTileTexture();
     this.talismanTex = TextureGenerator.createTalismanTexture();
 
-    this.dirtMat = new THREE.MeshStandardMaterial({ map: this.dirtTex, roughness: 0.9 });
-    this.woodMat = new THREE.MeshStandardMaterial({ map: this.woodTex, roughness: 0.75 });
-    this.stoneMat = new THREE.MeshStandardMaterial({ map: this.stoneTex, roughness: 0.85 });
-    this.tileMat = new THREE.MeshStandardMaterial({ map: this.tileTex, roughness: 0.7 });
+    this.dirtMat = new THREE.MeshStandardMaterial({ map: this.dirtTex, roughness: 1, flatShading: true });
+    this.woodMat = new THREE.MeshStandardMaterial({ map: this.woodTex, roughness: 1, flatShading: true });
+    this.stoneMat = new THREE.MeshStandardMaterial({ map: this.stoneTex, roughness: 1, flatShading: true });
+    this.tileMat = new THREE.MeshStandardMaterial({ map: this.tileTex, roughness: 1, flatShading: true });
     // Boss fight specific references
     this.pedestals = [];
     this.brazierLight = null;
@@ -27,7 +27,7 @@ export class VillageEnvironment {
     this.lanChiNPC = null;
     this.groundMaterials = new Map();
     this.wayfindingMaterials = new Map();
-    this.pathMat = new THREE.MeshBasicMaterial({ color: 0x8c7554 });
+    this.pathMat = new THREE.MeshStandardMaterial({ color: 0x8c7554, roughness: 1, flatShading: true });
   }
 
   addColliderBox(width, height, depth, centerX, centerY, centerZ) {
@@ -46,10 +46,12 @@ export class VillageEnvironment {
       const groundTexture = this.dirtTex.clone();
       groundTexture.repeat.set(width / 12, depth / 12);
       groundTexture.needsUpdate = true;
-      groundMaterial = new THREE.MeshBasicMaterial({
+      groundMaterial = new THREE.MeshStandardMaterial({
         map: groundTexture,
-        color: 0xe5d8bd,
-        side: THREE.DoubleSide
+        color: 0xc8b88f,
+        side: THREE.DoubleSide,
+        roughness: 1,
+        flatShading: true
       });
       this.groundMaterials.set(groundKey, groundMaterial);
     }
@@ -286,8 +288,80 @@ export class VillageEnvironment {
       interactablesList: interactablesList
     });
 
+    const bedGroup = new THREE.Group();
+    bedGroup.position.set(3, 0, 0);
+    const bedWood = new THREE.Mesh(new THREE.BoxGeometry(2.2, 0.35, 1.2), this.woodMat);
+    bedWood.position.y = 0.35;
+    bedGroup.add(bedWood);
+    const bedMat = new THREE.Mesh(new THREE.BoxGeometry(2.0, 0.22, 1.05), new THREE.MeshStandardMaterial({
+      color: 0x9b8a70,
+      roughness: 1,
+      flatShading: true
+    }));
+    bedMat.position.set(0, 0.64, 0);
+    bedGroup.add(bedMat);
+    const pillow = new THREE.Mesh(new THREE.BoxGeometry(0.55, 0.18, 0.75), new THREE.MeshStandardMaterial({
+      color: 0xc4b99d,
+      roughness: 1,
+      flatShading: true
+    }));
+    pillow.position.set(0.62, 0.82, 0);
+    bedGroup.add(pillow);
+    const sleepTarget = new THREE.Mesh(
+      new THREE.BoxGeometry(2.4, 1.7, 1.5),
+      new THREE.MeshBasicMaterial({ visible: false })
+    );
+    sleepTarget.position.set(0, 0.85, 0);
+    sleepTarget.userData = { type: 'bed', name: 'Nghỉ ngơi' };
+    bedGroup.add(sleepTarget);
+    houseGroup.add(bedGroup);
+    if (interactablesList) interactablesList.push(sleepTarget);
+
     this.createLantern(houseGroup, new THREE.Vector3(0, 3.2, 4.8));
     parent.add(houseGroup);
+  }
+
+  createMarketStand(parent, pos) {
+    const market = new THREE.Group();
+    market.position.copy(pos);
+    const wood = new THREE.MeshStandardMaterial({ color: 0x59412d, roughness: 1, flatShading: true });
+    const awning = new THREE.MeshStandardMaterial({ color: 0x8b4a36, roughness: 1, flatShading: true });
+    const counter = new THREE.Mesh(new THREE.BoxGeometry(5, 1.1, 1.2), wood);
+    counter.position.y = 0.55;
+    market.add(counter);
+
+    [-2.1, 2.1].forEach(x => {
+      const post = new THREE.Mesh(new THREE.BoxGeometry(0.16, 2.8, 0.16), wood);
+      post.position.set(x, 1.4, -0.35);
+      market.add(post);
+    });
+
+    const roof = new THREE.Mesh(new THREE.BoxGeometry(5.8, 0.18, 2.8), awning);
+    roof.position.set(0, 2.85, -0.35);
+    market.add(roof);
+    const signCanvas = document.createElement('canvas');
+    signCanvas.width = 256;
+    signCanvas.height = 64;
+    const context = signCanvas.getContext('2d');
+    if (!context) throw new Error('Không thể tạo biển hiệu chợ.');
+    context.fillStyle = '#443225';
+    context.fillRect(0, 0, 256, 64);
+    context.fillStyle = '#e1cfaa';
+    context.font = 'bold 28px sans-serif';
+    context.textAlign = 'center';
+    context.textBaseline = 'middle';
+    context.fillText('TẠP HÓA', 128, 32);
+    const signTexture = new THREE.CanvasTexture(signCanvas);
+    signTexture.magFilter = THREE.NearestFilter;
+    signTexture.minFilter = THREE.NearestFilter;
+    signTexture.colorSpace = THREE.SRGBColorSpace;
+    const sign = new THREE.Mesh(
+      new THREE.PlaneGeometry(2.4, 0.6),
+      new THREE.MeshBasicMaterial({ map: signTexture, toneMapped: false })
+    );
+    sign.position.set(0, 2.35, 0.61);
+    market.add(sign);
+    parent.add(market);
   }
 
   createNPC1House(parent, pos) {
@@ -756,6 +830,15 @@ export class VillageEnvironment {
           position: position,
           robeColor: 0x4a3224,
           hasHat: true
+        });
+      case 'shopkeeper':
+        return new NPC(this.scene, {
+          id: 'shopkeeper',
+          name: 'Cô Hảo',
+          dialogueKey: 'shopkeeper',
+          position,
+          robeColor: 0x58634a,
+          hasHat: false
         });
       case 'ong_tu':
         return new NPC(this.scene, {

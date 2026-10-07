@@ -18,10 +18,11 @@ export class AreaManager {
     this.playerController = playerController;
     this.villageEnv = villageEnv;
     this.questSystem = questSystem;
+    this.storyState = 'DAY_MORNING';
 
     this.currentAreaId = null;
-    this.currentAreaGroup = new THREE.Group();
-    this.scene.add(this.currentAreaGroup);
+    this.currentAreaGroup = null;
+    this.areaCache = new Map();
 
     this.areaNPCs = [];
     this.areaInteractables = [];
@@ -104,6 +105,12 @@ export class AreaManager {
       return false;
     }
 
+    if (targetAreaId === 'AREA_SHRINE_BOSS' &&
+        !['NIGHT', 'HORROR', 'CHASE', 'FINAL', 'ENDING'].includes(this.storyState)) {
+      this.showGateHint(targetAreaId, 'TRỜI CHƯA TỐI', 'Hãy trở về nhà nghỉ ngơi; cửa miếu chỉ mở sau khi đêm xuống.');
+      return false;
+    }
+
     return true;
   }
 
@@ -129,42 +136,27 @@ export class AreaManager {
       if (!this.canEnterArea(point.targetAreaId)) {
         return;
       }
-      this.transitionTo(point.targetAreaId, point.spawn);
+      this.transitionTo(point.targetAreaId, point.spawn, true);
     }
   }
 
-  async transitionTo(targetAreaId, targetSpawn = null) {
+  async transitionTo(targetAreaId, targetSpawn = null, preservePosition = false) {
     if (this.isTransitioning) return;
     this.isTransitioning = true;
 
     const config = this.getAreaConfig(targetAreaId);
-
-    // 1. Show Loading Screen & Fade Out
-    if (this.loadingAreaNameEl) this.loadingAreaNameEl.innerText = config.name;
-    if (this.loadingQuoteEl) {
-      const q = FOLKLORE_QUOTES[Math.floor(Math.random() * FOLKLORE_QUOTES.length)];
-      this.loadingQuoteEl.innerText = `"${q}"`;
-    }
-
-    this.loadingScreenEl.classList.remove('hidden');
-    this.loadingScreenEl.style.opacity = '1';
     this.playerController.enabled = false;
 
-    // Wait for fade
-    await new Promise(r => setTimeout(r, 650));
-
-    // 2. Unload current level objects
     this.unloadCurrentArea();
-
-    // 3. Load target level objects
     this.loadAreaObjects(config.id);
 
-    // 4. Move player to spawn point
-    const spawnPos = targetSpawn || config.playerSpawn;
-    this.camera.position.copy(spawnPos);
-    this.playerController.euler.set(0, 0, 0);
+    if (!preservePosition) {
+      const spawnPos = targetSpawn || config.playerSpawn;
+      this.camera.position.copy(spawnPos);
+      this.playerController.euler.set(0, 0, 0);
+      this.playerController.syncCameraFromEuler();
+    }
 
-    // 5. Update Area & Checkpoint
     this.currentAreaId = config.id;
     if (this.areaIndicatorText) this.areaIndicatorText.innerText = config.name;
     this.showCheckpointToast(config.checkpointId);
@@ -178,29 +170,12 @@ export class AreaManager {
       }
     });
 
-    // Play area ambience
     audioManager.setAreaAmbience(config.id);
-
-    // Hold loading screen for immersion
-    await new Promise(r => setTimeout(r, 800));
-
-    // 6. Fade In
-    this.loadingScreenEl.style.opacity = '0';
-    setTimeout(() => {
-      this.loadingScreenEl.classList.add('hidden');
-      this.playerController.enabled = true;
-      this.playerController.lockPointer();
-      this.isTransitioning = false;
-    }, 500);
+    this.playerController.enabled = true;
+    this.isTransitioning = false;
   }
 
   unloadCurrentArea() {
-    // Remove all children from area group
-    while (this.currentAreaGroup.children.length > 0) {
-      const obj = this.currentAreaGroup.children[0];
-      this.currentAreaGroup.remove(obj);
-    }
-
     this.villageEnv.interactables = [];
     this.villageEnv.lights = [];
     this.villageEnv.colliders = [];
@@ -211,8 +186,22 @@ export class AreaManager {
   }
 
   loadAreaObjects(areaId) {
+    const cachedArea = this.areaCache.get(areaId);
+    if (cachedArea) {
+      this.activateArea(cachedArea);
+      return;
+    }
+
     const v = this.villageEnv;
     v.colliders = [];
+    v.interactables = [];
+    v.lights = [];
+    this.areaNPCs = [];
+    this.areaInteractables = [];
+    this.gateways = [];
+    this.currentAreaGroup = new THREE.Group();
+    this.currentAreaGroup.userData.areaId = areaId;
+    this.scene.add(this.currentAreaGroup);
 
     switch (areaId) {
       case 'AREA_GATE_HOME':
@@ -238,6 +227,8 @@ export class AreaManager {
       case 'AREA_WELL':
         v.createTerrainSegment(this.currentAreaGroup, new THREE.Vector3(0, 0, 0), 80, 80);
         v.createVillageWell(this.currentAreaGroup, new THREE.Vector3(0, 0, -4), this.areaInteractables);
+        v.createMarketStand(this.currentAreaGroup, new THREE.Vector3(-22, 0, 7));
+        this.addNPC('shopkeeper', new THREE.Vector3(-22, 0, 9));
         v.createPaddyFields(this.currentAreaGroup, new THREE.Vector3(-25, 0, 0));
         v.createPathSegment(
           this.currentAreaGroup,
@@ -369,7 +360,41 @@ export class AreaManager {
       this.routeIndicatorText.innerText = nextStops[areaId] || 'LỐI ĐI: THEO ĐƯỜNG ĐẤT';
     }
 
-    this.playerController.setColliders(this.villageEnv.colliders);
+    const area = {
+      id: areaId,
+      group: this.currentAreaGroup,
+      npcs: this.areaNPCs,
+      interactables: this.areaInteractables,
+      gateways: this.gateways,
+      colliders: [...this.villageEnv.colliders],
+      lights: [...this.villageEnv.lights]
+    };
+    this.areaCache.set(areaId, area);
+    this.activateArea(area);
+  }
+
+  activateArea(area) {
+    this.currentAreaGroup = area.group;
+    this.currentAreaId = area.id;
+    this.areaNPCs = area.npcs;
+    this.areaInteractables = area.interactables;
+    this.gateways = area.gateways;
+    this.villageEnv.colliders = area.colliders;
+    this.villageEnv.interactables = area.interactables;
+    this.villageEnv.lights = area.lights;
+    this.playerController.setColliders(area.colliders);
+  }
+
+  preloadWorld() {
+    const areaIds = [
+      'AREA_GATE_HOME',
+      'AREA_WELL',
+      'AREA_CEMETERY',
+      'AREA_FOREST',
+      'AREA_SHRINE_BOSS'
+    ];
+    areaIds.forEach(areaId => this.loadAreaObjects(areaId));
+    this.loadAreaObjects('AREA_GATE_HOME');
   }
 
   createGateway(position, targetAreaId, promptText, targetSpawn, signLabel, signFacingAngle = 0) {
@@ -415,6 +440,7 @@ export class AreaManager {
       this.currentAreaGroup.add(npcObj.group);
       this.areaNPCs.push(npcObj);
       this.areaInteractables.push(npcObj.hitbox);
+      if (npcId === 'lan_chi') this.villageEnv.lanChiNPC = npcObj;
     }
   }
 

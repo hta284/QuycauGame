@@ -3,7 +3,7 @@ export const QUESTS = [
   {
     id: "Q01",
     name: "Tìm người thân",
-    description: "Bạn vừa trở về làng trong đêm tối sau khi nghe tin người thân mất tích bí ẩn. Hãy vào ngôi nhà cũ của gia đình để tìm lại ký ức và manh mối.",
+    description: "Bạn trở về ngôi làng quê vào một buổi sáng yên bình. Lan Chi đã rời nhà trước khi bạn tới; hãy kiểm tra ngôi nhà cũ để tìm manh mối.",
     objective: "Vào ngôi nhà cũ của gia đình và tìm Bức ảnh gia đình (CLUE 02).",
     targetLocation: "Nhà nhân vật chính",
     completed: false
@@ -11,23 +11,23 @@ export const QUESTS = [
   {
     id: "Q02",
     name: "Nói chuyện với bà Lan",
-    description: "Bà Lan là hàng xóm lâu năm sống ở đầu làng. Hãy đến hỏi thăm bà về những sự việc kỳ lạ gần đây.",
+    description: "Bà Lan là hàng xóm lâu năm. Hãy hỏi bà lần cuối cùng bà gặp Lan Chi.",
     objective: "Đến nhà Bà Lan và nói chuyện để tìm hiểu tung tích người thân.",
     targetLocation: "Nhà Bà Lan",
     completed: false
   },
   {
     id: "Q03",
-    name: "Điều tra cái giếng",
-    description: "Bà Lan đã cảnh báo bạn không được đến gần cái giếng làng. Nhưng những âm thanh kỳ lạ dưới giếng giục giã bạn phải tới đó điều tra.",
-    objective: "Tiến đến Giếng Làng, thu thập Chiếc Vòng Cổ (CLUE 01) và Dấu Chân Lạ (CLUE 03).",
-    targetLocation: "Giếng làng",
+    name: "Hỏi thăm dân làng",
+    description: "Lan Chi được nhìn thấy ở nhiều nơi trong làng. Hãy ghé quầy tạp hóa và hỏi ông Tư ở đình để lần theo dấu vết.",
+    objective: "Nói chuyện với cô Hảo ở chợ và ông Tư gần đình làng.",
+    targetLocation: "Chợ làng và đình",
     completed: false
   },
   {
     id: "Q04",
     name: "Tìm manh mối tại nghĩa địa",
-    description: "Ông Tư và dân làng hé lộ về những dấu tích quỷ dị xuất hiện tại khu mộ cổ phía sau đình làng.",
+    description: "Theo lời dân làng, Lan Chi đã đi về phía khu mộ cũ phía sau đình.",
     objective: "Đi tới Nghĩa Địa và tìm kiếm Trang Nhật Ký Cũ (CLUE 05) trên bia mộ hoang.",
     targetLocation: "Nghĩa địa",
     completed: false
@@ -35,16 +35,16 @@ export const QUESTS = [
   {
     id: "Q05",
     name: "Gặp Người Giữ Miếu ở cửa rừng",
-    description: "Một bóng người bí ẩn đứng ở lối mòn dẫn vào rừng. Đó có thể là Người Giữ Miếu Cũ nắm giữ bí mật cổ xưa.",
+    description: "Dấu chân của Lan Chi dẫn tới cửa rừng. Người giữ miếu có thể giúp bạn tìm đường vào.",
     objective: "Nói chuyện với Người Giữ Miếu để nhận Bùa Trấn Yểm (CLUE 08) và mở lối vào rừng.",
     targetLocation: "Con đường dẫn vào rừng",
     completed: false
   },
   {
     id: "Q06",
-    name: "Tìm đường đến Miếu Cũ",
-    description: "Lần theo các dấu máu và mảnh vải xé rách xuyên qua rặng rừng tre u tối để đến khu Miếu Cũ linh thiêng.",
-    objective: "Nhặt Mảnh Vải (CLUE 07) và đi sâu vào Miếu Cũ.",
+    name: "Lần theo dấu vết trong rừng",
+    description: "Sau một buổi chiều điều tra, hãy trở về nhà nghỉ ngơi. Đêm xuống, lần theo mảnh vải để tìm dấu vết của Lan Chi.",
+    objective: "Trở về nhà nghỉ khi trời tối, rồi tìm Mảnh Vải (CLUE 07) ở cửa rừng.",
     targetLocation: "Miếu Cũ",
     completed: false
   },

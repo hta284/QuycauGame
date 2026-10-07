@@ -22,7 +22,7 @@ export class BossFightSystem {
     this.bossPhaseText = document.getElementById('boss-phase-text');
   }
 
-  startBossFight() {
+  startBossFight(advanceQuest = true) {
     if (this.isActive || this.isDefeated) return;
     this.isActive = true;
     this.phase = 1;
@@ -41,7 +41,7 @@ export class BossFightSystem {
     audioManager.startBossMusic();
     audioManager.playMonsterRoar();
 
-    this.questSystem.completeQuest('Q07'); // Advance to Q08: Tiêu diệt Quỷ Cẩu
+    if (advanceQuest) this.questSystem.completeQuest('Q07');
   }
 
   update(delta, playerPosition) {

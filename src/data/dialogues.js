@@ -4,29 +4,35 @@ export const DIALOGUES = {
     name: "Bà Lan",
     portrait: "/assets/character/batu/Gemini_Generated_Image_52noiq52noiq52no.png",
     default: {
-      text: "Cháu về làng lúc này làm gì hả Nam?! Làng dạo này lạ lắm... Mau vào nhà đóng kín cửa lại đi!",
+      text: "Nam đấy à? Lâu rồi mới thấy cháu về. Bà nghe nói Lan Chi đi khỏi nhà từ sáng, cả nhà đang lo. Cháu cứ hỏi quanh làng xem có ai gặp em nó không.",
       options: [
-        { text: "Cháu đang tìm em gái. Bà có thấy con bé không?", next: "step_ask_relative" },
-        { text: "Bà có nghe thấy tiếng động gì ngoài đường không?", next: "step_sounds" }
+        { text: "Cháu đang tìm em gái. Bà có gặp em ấy không?", next: "step_ask_relative", advanceQuest: "Q02" },
+        { text: "Dạo này trong làng có chuyện gì lạ không?", next: "step_sounds" }
       ]
     },
     step_ask_relative: {
-      text: "Con Lan Chi ấy hả... Chiều tối qua bà thấy nó hớt hải chạy về phía đình làng rồi hướng ra giếng cổ. Nhưng cháu tuyệt đối đừng ra phía cái giếng lúc đêm hôm thế này!",
+      text: "Sáng nay bà thấy Lan Chi đi về phía đình. Nó có vẻ vội, nhưng bà không hỏi kịp. Cháu thử hỏi cô Hảo ngoài chợ hoặc ông Tư ở đình xem.",
       options: [
-        { text: "Tại sao không được ra giếng hả bà?", next: "step_why_well" },
-        { text: "Cảm ơn bà, cháu phải đi tìm em ngay!", next: "close" }
+        { text: "Cháu sẽ hỏi mọi người quanh làng.", next: "close" },
+        { text: "Bà có nghe gì ở giếng làng không?", next: "step_why_well" }
       ]
     },
     step_why_well: {
-      text: "Ở đó... có thứ không nên nhìn thấy! Mấy ngày nay nửa đêm nước giếng cứ sôi lục bục, rồi có tiếng móng vuốt cào trên nền đá... Đừng gọi tên nó, đừng để nó ngửi thấy mùi người!",
+      text: "Chỉ nghe người ta than cái giếng lại cạn nước. Chắc là chuyện máy bơm thôi, cháu đừng nghe mấy lời đồn.",
       options: [
-        { text: "Cháu hiểu rồi, cháu sẽ cẩn thận.", next: "close", advanceQuest: "Q02" }
+        { text: "Vâng, để cháu tự xem thử.", next: "close" }
       ]
     },
     step_sounds: {
-      text: "Đêm nào cũng có tiếng thở khò khè của loài thú lớn quanh vách nhà... Gà vịt trong chuồng chết sạch mà không mất giọt máu nào, chỉ có vết cắn rách cổ họng thôi...",
+      text: "Mùa này đêm hay có tiếng chó sủa vọng từ cuối làng. Chuyện thường thôi, chắc nhà ai nuôi chó.",
       options: [
-        { text: "Cháu sẽ điều tra chuyện này.", next: "close" }
+        { text: "Cháu sẽ hỏi thêm mọi người.", next: "close" }
+      ]
+    },
+    after_nightmare: {
+      text: "Ác mộng thôi cháu. Mấy hôm nay cháu mệt quá nên nghe tiếng chó cũng tưởng tượng ra đủ chuyện. Đây, bà thấy dấu chân lấm bùn ngay ngoài cửa nhà cháu—chắc ai đi ngang để lại.",
+      options: [
+        { text: "Cháu sẽ tự kiểm tra dấu chân đó.", next: "close" }
       ]
     }
   },
@@ -35,29 +41,45 @@ export const DIALOGUES = {
     name: "Ông Tư",
     portrait: "/assets/character/ong lam/Gemini_Generated_Image_cj76vacj76vacj76.png",
     default: {
-      text: "Cậu Nam đấy à? Ba mươi năm trước làng này từng một phen náo loạn vì một con linh khuyển bị yểm tà thuật. Cứ tưởng nó đã chết rục dưới đáy vực rồi...",
+      text: "Nam phải không? Lan Chi có ghé đình buổi sáng, hỏi đường sang khu mộ cũ. Cậu cứ hỏi thêm cô Hảo ở chợ; bà ấy thấy người qua lại nhiều hơn tôi.",
       options: [
-        { text: "Con linh khuyển đó là thứ gì vậy ông?", next: "step_legend" },
-        { text: "Cháu nghe nói ở nghĩa địa có dấu tích lạ?", next: "step_graveyard" }
+        { text: "Cháu sẽ hỏi cô Hảo.", next: "step_legend" },
+        { text: "Cháu muốn tìm khu mộ cũ.", next: "step_graveyard" }
       ]
     },
     step_legend: {
-      text: "Đó là Quỷ Cẩu! Nó không phải con chó bình thường. Thân hình nó gầy trơ xương, cao lớn như người, ban ngày chui rúc nơi u tối, đêm xuống mới hiện thân hút sinh khí để hồi sinh ma lực!",
+      text: "Chợ ở cạnh giếng. Có người nói thấy Lan Chi đi về phía nghĩa địa, nhưng tôi không tận mắt thấy nên đừng vội tin.",
       options: [
-        { text: "Làm sao để tiêu diệt được nó?", next: "step_destroy" }
+        { text: "Cảm ơn ông, cháu sẽ tự xác minh.", next: "close" }
       ]
     },
     step_destroy: {
-      text: "Xưa kia các cụ phải dùng 3 bệ thờ kết hợp bùa chu sa và ngọn lửa thiêng ở Miếu Cũ mới trấn áp được nó. Hãy cẩn thận, nó đánh hơi được người sợ hãi!",
+      text: "Tôi chỉ biết lối vào khu mộ phía sau đình. Cứ đi theo con đường đất, ban ngày vẫn có người qua lại.",
       options: [
-        { text: "Cháu sẽ đến nghĩa địa tìm thêm manh mối.", next: "close" }
+        { text: "Cháu hiểu rồi.", next: "close" }
       ]
     },
     step_graveyard: {
-      text: "Khu nghĩa địa đằng sau đình làng đêm nay bốc mùi tử khí nồng nặc. Có người bảo thấy bóng một con thú đen khổng lồ đứng trên bia mộ cổ... Hãy cầm chắc đèn pin!",
+      text: "Đằng sau đình có một quyển sổ cũ bị bỏ quên. Có lẽ nó ghi lại chuyện của người trong làng.",
       options: [
-        { text: "Cháu cảm ơn ông Tư.", next: "close" }
+        { text: "Cháu sẽ tìm thử.", next: "close" }
       ]
+    }
+  },
+
+  shopkeeper: {
+    name: "Cô Hảo",
+    portrait: "/assets/character/danlangnu/Gemini_Generated_Image_39ese139ese139es.png",
+    default: {
+      text: "Nam về đúng lúc đấy. Sáng nay Lan Chi hỏi đường sang đình rồi đi mất. Ông Tư chắc biết rõ hơn tôi; ông ấy đang ở phía nghĩa địa.",
+      options: [
+        { text: "Cô có thấy em cháu đi một mình không?", next: "more" },
+        { text: "Cháu cảm ơn cô.", next: "close" }
+      ]
+    },
+    more: {
+      text: "Có, nhưng lúc đó trong làng vẫn đông người. Cháu cứ hỏi ông Tư, đừng tự suy diễn từ mấy lời đồn ngoài chợ.",
+      options: [{ text: "Cháu sẽ hỏi ông ấy.", next: "close" }]
     }
   },
 
@@ -65,7 +87,7 @@ export const DIALOGUES = {
     name: "Minh",
     portrait: "/assets/character/danlangnam/Gemini_Generated_Image_uvl7i9uvl7i9uvl7.png",
     default: {
-      text: "Anh Nam! Em ban đầu cũng tưởng chuyện Quỷ Cẩu chỉ là mấy người già dọa trẻ con... Cho tới khi chập tối nay em tận mắt thấy một cái bóng đen khổng lồ nhảy qua mái đình!",
+      text: "Anh Nam! Em vừa gặp chị Lan Chi ở đình. Chị ấy hỏi đường ra khu mộ cũ rồi đi về phía đó. Anh thử hỏi chị Hạnh, chị ấy đi cùng một đoạn.",
       options: [
         { text: "Em có thấy nó chạy về hướng nào không?", next: "step_saw_direction" },
         { text: "Em có thấy em gái anh không?", next: "step_saw_sister" }
@@ -78,7 +100,7 @@ export const DIALOGUES = {
       ]
     },
     step_saw_sister: {
-      text: "Em thấy chị Hạnh nói chuyện với chị Lan Chi ở gần đình lúc xẩm tối. Anh thử hỏi chị Hạnh xem sao!",
+      text: "Chị Hạnh đi cùng Lan Chi một đoạn. Chị ấy chắc còn ở gần đình.",
       options: [
         { text: "Cảm ơn em, Minh.", next: "close" }
       ]
@@ -89,7 +111,7 @@ export const DIALOGUES = {
     name: "Hạnh",
     portrait: "/assets/character/danlangnu/Gemini_Generated_Image_39ese139ese139es.png",
     default: {
-      text: "Anh Nam! Em là người cuối cùng gặp chị Lan Chi... Chị ấy nói hình như có ai đó dẫn dụ chị ấy tới khu nghĩa địa cũ để tìm lại di vật của gia đình...",
+      text: "Anh Nam, em gặp Lan Chi lúc sáng. Chị ấy nói muốn tự tới khu mộ cũ tìm một món đồ của gia đình. Em tưởng chị ấy đã nói với anh.",
       options: [
         { text: "Tại sao Lan Chi lại đi một mình trong đêm?", next: "step_why_alone" },
         { text: "Em có biết gì về con đường vào rừng không?", next: "step_forest_path" }
@@ -113,7 +135,7 @@ export const DIALOGUES = {
     name: "Người Giữ Miếu",
     portrait: "/assets/character/thaycung/Gemini_Generated_Image_8z8ejx8z8ejx8z8e.jpg",
     default: {
-      text: "Cậu thanh niên... Huyết thống nhà họ Trần cuối cùng cũng đã về. Con nghiệt súc kia đang giam giữ người thân của cậu trong Miếu Cũ để tế trăng máu!",
+      text: "Cậu tìm Lan Chi phải không? Tôi thấy dấu chân của em ấy dẫn vào rừng, nhưng chuyện trong rừng không giống một cuộc đi dạo. Nếu muốn vào, hãy cầm lấy lá bùa này và đừng rời khỏi lối mòn.",
       options: [
         { text: "Xin ông chỉ cách cứu em gái cháu!", next: "step_guide_ritual" },
         { text: "Tại sao nó lại nhắm vào gia đình cháu?", next: "step_why_family" }

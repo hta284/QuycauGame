@@ -87,9 +87,6 @@ export class ChapterManager {
 
     // 2. Transition to corresponding area
     await this.areaManager.transitionTo(ch.areaId);
-
-    // 3. Set matching quest
-    this.questSystem.completeQuest(ch.questId);
   }
 
   advanceToNextChapter() {

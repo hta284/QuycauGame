@@ -53,8 +53,7 @@ export class DeathSystem {
     const btnNightmareContinue = document.getElementById('btn-nightmare-continue');
     if (btnNightmareContinue) {
       btnNightmareContinue.onclick = () => {
-        this.nightmareScreen.classList.add('hidden');
-        this.restartFromCheckpoint();
+        this.completeNightmare();
       };
     }
   }
@@ -83,7 +82,7 @@ export class DeathSystem {
       document.body.classList.add('camera-shake');
     }
 
-    // 4. Delay then fade to black and show Game Over screen
+    // 4. The death is followed by the recurring nightmare and a safe wake-up.
     setTimeout(() => {
       document.body.classList.remove('camera-shake');
       if (this.jumpscareOverlay) this.jumpscareOverlay.classList.add('hidden');
@@ -96,7 +95,7 @@ export class DeathSystem {
       }
       audioManager.stopChaseMusic();
 
-      this.gameOverScreen.classList.remove('hidden');
+      this.playNightmareSequence();
     }, 1400);
   }
 
@@ -139,5 +138,25 @@ export class DeathSystem {
       btn.classList.remove('hidden');
       audioManager.playDogBark(true);
     }, 5000);
+  }
+
+  completeNightmare() {
+    this.nightmareScreen.classList.add('hidden');
+    this.isDead = false;
+    this.game.midnightHuntStarted = false;
+    this.game.afterNightmarePending = true;
+    this.game.areaManager.transitionTo(
+      'AREA_GATE_HOME',
+      new THREE.Vector3(-18, 1.7, 22),
+      false
+    );
+    this.game.ensureFootprintClue();
+    this.game.setWorldState('DAY_AFTER_NIGHTMARE');
+    this.game.setQuestObjective('Kiểm tra dấu chân ngoài cửa, rồi hỏi Bà Lan về giấc mơ.');
+    this.game.playerController.enabled = true;
+    this.game.isPaused = false;
+    this.game.autoSave();
+    audioManager.stopChaseMusic();
+    this.game.questSystem.showToast('BẠN TỈNH DẬY Ở NHÀ', 'Bà Lan đang ở ngoài sân. Hãy hỏi bà về giấc mơ.');
   }
 }
