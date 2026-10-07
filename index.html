@@ -1,0 +1,412 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>QUỶ CẨU: ĐÊM Ở LÀNG | Vietnamese Horror Game</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;900&family=Playfair+Display:ital,wght@0,600;0,900;1,400&family=Be+Vietnam+Pro:wght@300;400;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/src/style.css">
+</head>
+<body>
+  <!-- 3D Canvas Container -->
+  <div id="game-container">
+    <canvas id="webgl-canvas"></canvas>
+  </div>
+
+  <!-- Screen Horror Vignette & Blood Pulse -->
+  <div id="vignette-overlay"></div>
+  <div id="heartbeat-overlay"></div>
+  <div id="flash-overlay"></div>
+
+  <!-- Jumpscare Shock Overlay -->
+  <div id="jumpscare-overlay" class="hidden">
+    <div id="jumpscare-glitch"></div>
+    <div id="jumpscare-blood"></div>
+  </div>
+
+  <!-- HUD -->
+  <div id="hud" class="hidden">
+    <!-- Center Crosshair & Interaction Prompt -->
+    <div id="crosshair"></div>
+    <div id="interaction-prompt" class="hidden">
+      <span class="key-badge">E</span>
+      <span id="interaction-text">Tương tác</span>
+    </div>
+
+    <!-- Top Objective Bar -->
+    <div id="objective-container">
+      <div class="objective-header">
+        <span class="quest-icon">❖</span>
+        <span id="quest-chapter-tag">CHƯƠNG 01: TRỞ VỀ</span>
+      </div>
+      <div id="quest-objective">Trở về làng và tìm manh mối đầu tiên tại nhà cũ</div>
+    </div>
+
+    <!-- Clue & Status Counter (Top Right) -->
+    <div id="status-container">
+      <div class="status-item" id="evidence-counter">
+        <span class="status-icon">📜</span>
+        <span>Manh mối: <b id="clue-count">0</b>/8</span>
+      </div>
+      <div class="status-item" id="area-indicator">
+        <span class="status-icon">📍</span>
+        <span id="area-text">CỔNG LÀNG</span>
+      </div>
+      <div class="status-item" id="route-indicator">
+        <span class="status-icon">🧭</span>
+        <span id="route-text">LỐI ĐI: GIẾNG LÀNG</span>
+      </div>
+      <div class="status-item" id="time-indicator">
+        <span class="status-icon">🌙</span>
+        <span id="time-text">ĐÊM KHUYA</span>
+      </div>
+    </div>
+
+    <!-- Boss Health Bar (Hidden until boss fight) -->
+    <div id="boss-hud" class="hidden">
+      <div class="boss-name">QUỶ CẨU - ÁC THÚ HUYẾT THIỆM</div>
+      <div class="boss-bar-border">
+        <div id="boss-health-fill" style="width: 100%;"></div>
+      </div>
+      <div id="boss-phase-text">GIAI ĐOẠN 1: NÉ TRÁNH ĐÒN TẤN CÔNG</div>
+    </div>
+
+    <!-- Stamina Bar (Bottom Left) -->
+    <div id="stamina-container">
+      <div class="stamina-label">THỂ LỰC</div>
+      <div class="stamina-bar-bg">
+        <div id="stamina-fill"></div>
+      </div>
+    </div>
+
+    <!-- Bottom HUD Prompts / Controls Hint -->
+    <div id="controls-hint">
+      <span><b>WASD</b> Di chuyển</span>
+      <span><b>SPACE</b> Nhảy</span>
+      <span><b>SHIFT</b> Chạy</span>
+      <span><b>F</b> Đèn pin</span>
+      <span><b>TAB</b> Manh mối</span>
+      <span><b>J</b> Nhiệm vụ</span>
+      <span><b>ESC</b> Tạm dừng</span>
+      <span><b>F1</b> Debug</span>
+    </div>
+
+    <!-- Threat / Warning Alert (e.g. Quỷ Cẩu detecting) -->
+    <div id="threat-indicator" class="hidden">
+      <span class="threat-icon">👁</span>
+      <span id="threat-text">CÓ TIẾNG ĐỘNG LẠ Ở GẦN...</span>
+    </div>
+  </div>
+
+  <!-- Checkpoint Saved Banner -->
+  <div id="checkpoint-toast" class="hidden">
+    <span class="checkpoint-icon">⛩</span>
+    <span id="checkpoint-toast-text">ĐÃ LƯU ĐIỂM KIỂM SOÁT</span>
+  </div>
+
+  <!-- Notification Toast -->
+  <div id="notification-toast" class="hidden">
+    <div id="toast-title">MANH MỐI MỚI</div>
+    <div id="toast-desc">Chiếc vòng cổ chó cũ đã được ghi nhận vào nhật ký.</div>
+  </div>
+
+  <!-- Chapter Title Card Announcement (Fades in on chapter start) -->
+  <div id="chapter-announcement" class="hidden">
+    <div class="chapter-announcement-content">
+      <div class="chapter-sub-num" id="ann-chapter-num">CHƯƠNG 01</div>
+      <div class="chapter-main-title" id="ann-chapter-title">TRỞ VỀ</div>
+      <div class="chapter-divider-line"></div>
+    </div>
+  </div>
+
+  <!-- Cinematic Intro Sequence (Plays on New Game) -->
+  <div id="intro-sequence" class="hidden">
+    <div class="intro-bg-wrapper">
+      <img id="intro-bg-img" src="/assets/boicanh/lang/conglangbandem.png" alt="Intro Background">
+      <div class="intro-rain-layer"></div>
+      <div class="intro-vignette"></div>
+    </div>
+    <div class="intro-narration-box">
+      <p id="intro-narration-text" class="intro-text-line">"Đã nhiều năm tôi chưa quay lại nơi này..."</p>
+    </div>
+    <div id="intro-title-reveal" class="hidden">
+      <h1 class="game-logo big-logo">QUỶ CẨU</h1>
+      <h2 class="game-sub">ĐÊM Ở LÀNG</h2>
+    </div>
+    <button id="btn-skip-intro" class="btn-skip">BỎ QUA [ESC / SPACE]</button>
+  </div>
+
+  <!-- Loading Screen & Area Transition -->
+  <div id="loading-screen" class="hidden">
+    <div class="loading-bg">
+      <div class="loading-ornament-circle">
+        <div class="loading-spinner"></div>
+      </div>
+      <div class="loading-target-area">ĐANG DI CHUYỂN ĐẾN...</div>
+      <h2 id="loading-area-name">GIẾNG LÀNG</h2>
+      <div class="loading-divider"></div>
+      <p id="loading-quote">"Đêm càng sâu, con đường càng im lặng."</p>
+    </div>
+  </div>
+
+  <!-- Game Over Screen -->
+  <div id="game-over-screen" class="modal-overlay hidden">
+    <div class="game-over-box">
+      <div class="game-over-skull">💀</div>
+      <h1 class="game-over-title">BẠN ĐÃ BỊ QUỶ CẨU BẮT</h1>
+      <p class="game-over-desc">Bóng tối nuốt chửng linh hồn bạn giữa đêm lạnh...</p>
+      <div class="menu-buttons">
+        <button class="btn btn-menu btn-primary" id="btn-restart-checkpoint">QUAY LẠI CHECKPOINT</button>
+        <button class="btn btn-menu" id="btn-wake-nightmare">TỈNH DẬY TỪ ÁC MỘNG</button>
+        <button class="btn btn-menu" id="btn-restart-beginning">CHƠI LẠI TỪ ĐẦU</button>
+        <button class="btn btn-menu btn-danger" id="btn-gameover-main">MENU CHÍNH</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Nightmare Awakening Sequence Modal (Option Ác Mộng) -->
+  <div id="nightmare-sequence" class="modal-overlay hidden">
+    <div class="nightmare-content">
+      <div id="nightmare-breath-sound"></div>
+      <div class="nightmare-dialogue-box">
+        <p id="nightmare-step-1" class="nightmare-text">"Tôi... vừa gặp ác mộng sao?"</p>
+        <p id="nightmare-step-2" class="nightmare-text hidden">Bạn giật mình tỉnh dậy trên chiếc phản gỗ trong ngôi nhà cũ của gia đình.<br>Mồ hôi lạnh đẫm trán, tim đập thình thịch...</p>
+        <div id="nightmare-pawprint-wrapper" class="hidden">
+          <img src="/assets/boicanh/lang/dauchanconcho.png" alt="Dấu chân quỷ" class="nightmare-paw-img">
+          <p class="nightmare-caption">Nhưng dưới sàn nhà... một vệt móng vuốt chó khổng lồ còn rỉ máu tươi bốc khói...</p>
+        </div>
+        <button class="btn btn-primary hidden" id="btn-nightmare-continue">GƯỢNG DẬY VÀ TIẾP TỤC</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Dialogue Box Overlay -->
+  <div id="dialogue-overlay" class="hidden">
+    <div class="dialogue-box">
+      <div class="dialogue-portrait-container">
+        <img id="dialogue-portrait" src="/assets/character/batu/Gemini_Generated_Image_52noiq52noiq52no.png" alt="NPC Portrait">
+      </div>
+      <div class="dialogue-content">
+        <div id="dialogue-speaker">BÀ LAN</div>
+        <div id="dialogue-text">"Cháu về làng lúc này làm gì? Mau rời khỏi đây trước khi trời tối hẳn!"</div>
+        <div id="dialogue-options">
+          <!-- Dynamic choice buttons or Continue button -->
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Evidence Inspection / Clue Modal -->
+  <div id="clue-modal" class="modal-overlay hidden">
+    <div class="modal-panel clue-modal-panel">
+      <button class="modal-close-btn" id="close-clue-modal">&times;</button>
+      <div class="clue-modal-body">
+        <div class="clue-modal-image-wrapper">
+          <img id="clue-modal-img" src="" alt="Clue Image">
+        </div>
+        <div class="clue-modal-info">
+          <div class="clue-tag">MANH MỐI #<span id="clue-modal-id">01</span></div>
+          <h2 id="clue-modal-title">Chiếc Vòng Cổ Cũ</h2>
+          <div class="clue-divider"></div>
+          <p id="clue-modal-desc">Một chiếc vòng da bạc màu dính bùn đất sẫm màu lạ lùng...</p>
+          <div class="clue-modal-location">Địa điểm: <span id="clue-modal-loc">Giếng Làng</span></div>
+          <button class="btn btn-primary" id="btn-inspect-close">Ghi nhận [E / ESC]</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Evidence Log (TAB) -->
+  <div id="evidence-log-modal" class="modal-overlay hidden">
+    <div class="modal-panel log-panel">
+      <div class="log-header">
+        <h2>SỔ GHI CHÉP MANH MỐI (EVIDENCE LOG)</h2>
+        <span class="esc-hint">Nhấn [TAB] hoặc [ESC] để đóng</span>
+      </div>
+      <div class="clues-grid" id="clues-grid">
+        <!-- Rendered dynamically -->
+      </div>
+    </div>
+  </div>
+
+  <!-- Quest Log (J) -->
+  <div id="quest-log-modal" class="modal-overlay hidden">
+    <div class="modal-panel log-panel">
+      <div class="log-header">
+        <h2>NHẬT KÝ ĐIỀU TRA (QUEST LOG)</h2>
+        <span class="esc-hint">Nhấn [J] hoặc [ESC] để đóng</span>
+      </div>
+      <div id="quest-log-content">
+        <div class="current-quest-section">
+          <h3>NHIỆM VỤ HIỆN TẠI</h3>
+          <div id="active-quest-details">
+            <!-- Active quest injected here -->
+          </div>
+        </div>
+        <div class="completed-quest-section">
+          <h3>NHIỆM VỤ ĐÃ HOÀN THÀNH</h3>
+          <div id="completed-quest-list">
+            <!-- Completed quests injected here -->
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Pause Menu (ESC) -->
+  <div id="pause-menu" class="modal-overlay hidden">
+    <div class="menu-box">
+      <h1 class="game-logo small">QUỶ CẨU</h1>
+      <div class="subtitle">ĐÊM Ở LÀNG</div>
+      <div class="menu-buttons">
+        <button class="btn btn-menu" id="btn-resume">TIẾP TỤC</button>
+        <button class="btn btn-menu" id="btn-pause-evidence">SỔ MANH MỐI [TAB]</button>
+        <button class="btn btn-menu" id="btn-pause-quests">NHẬT KÝ NHIỆM VỤ [J]</button>
+        <button class="btn btn-menu" id="btn-pause-checkpoint">QUAY LẠI CHECKPOINT</button>
+        <button class="btn btn-menu" id="btn-pause-settings">CÀI ĐẶT</button>
+        <button class="btn btn-menu" id="btn-restart">CHƠI LẠI TỪ ĐẦU</button>
+        <button class="btn btn-menu btn-danger" id="btn-quit-to-main">VỀ MENU CHÍNH</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Settings Modal -->
+  <div id="settings-modal" class="modal-overlay hidden">
+    <div class="modal-panel settings-panel">
+      <div class="log-header">
+        <h2>CÀI ĐẶT TRÒ CHƠI</h2>
+        <span class="esc-hint" id="close-settings-btn">&times; Đóng</span>
+      </div>
+      <div class="settings-content">
+        <div class="setting-row">
+          <label for="slider-master-volume">Âm lượng tổng:</label>
+          <input type="range" id="slider-master-volume" min="0" max="100" value="80">
+          <span id="val-master-volume">80%</span>
+        </div>
+        <div class="setting-row">
+          <label for="slider-brightness">Độ sáng màn hình:</label>
+          <input type="range" id="slider-brightness" min="40" max="180" value="100">
+          <span id="val-brightness">100%</span>
+        </div>
+        <div class="setting-row">
+          <label for="slider-mouse-sens">Độ nhạy chuột:</label>
+          <input type="range" id="slider-mouse-sens" min="1" max="10" value="4">
+          <span id="val-mouse-sens">4</span>
+        </div>
+        <div class="setting-row">
+          <label for="toggle-flashlight-flicker">Hiệu ứng đèn chập chờn:</label>
+          <input type="checkbox" id="toggle-flashlight-flicker" checked>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Main Menu -->
+  <div id="main-menu" class="menu-overlay">
+    <div class="main-menu-bg">
+      <img src="/assets/boicanh/lang/conglangbandem.png" alt="Village Gate at Night" class="menu-bg-img">
+      <div class="fog-ambient-layer"></div>
+    </div>
+    <div class="main-menu-content">
+      <div class="title-group">
+        <h1 class="game-logo">QUỶ CẨU</h1>
+        <h2 class="game-sub">ĐÊM Ở LÀNG</h2>
+        <div class="game-tagline">MỘT NỖI SỢ DÂN GIAN VIỆT NAM</div>
+      </div>
+      <div class="menu-buttons main-nav">
+        <button class="btn btn-menu btn-primary" id="btn-new-game">BẮT ĐẦU CHƠI MỚI</button>
+        <button class="btn btn-menu" id="btn-continue" disabled>TIẾP TỤC HÀNH TRÌNH</button>
+        <button class="btn btn-menu" id="btn-main-settings">CÀI ĐẶT</button>
+        <button class="btn btn-menu" id="btn-credits">LỜI CẢM ƠN & CỐT TRUYỆN</button>
+      </div>
+      <div class="version-tag">CHAPTER EDITION v2.0 • THREE.JS HORROR ENGINE</div>
+    </div>
+  </div>
+
+  <!-- Story Credits Modal -->
+  <div id="credits-modal" class="modal-overlay hidden">
+    <div class="modal-panel credits-panel">
+      <h2>QUỶ CẨU: ĐÊM Ở LÀNG</h2>
+      <div class="credits-body">
+        <p><b>Cốt truyện:</b> Dựa trên truyền thuyết dân gian Việt Nam về linh khuyển hóa quỷ canh giữ tà ma và nghiệp báo.</p>
+        <p><b>Lối chơi:</b> Góc nhìn thứ nhất (First Person Horror), điều tra manh mối theo từng chương, đối đầu thử thách ma quái tại ngôi làng cổ kính.</p>
+        <p><b>Nhóm phát triển Prototype:</b> Antigravity Senior Game Engineering Team.</p>
+        <p><b>Mục tiêu:</b> Kiểm chứng Game Design, Mood & Atmosphere, Gameplay Loop trước khi chuyển đổi sang Unreal Engine 5.</p>
+      </div>
+      <button class="btn btn-primary" id="close-credits-btn">ĐÓNG</button>
+    </div>
+  </div>
+
+  <!-- Ending Screen -->
+  <div id="ending-screen" class="modal-overlay hidden">
+    <div class="ending-content">
+      <div id="ending-sun-flare"></div>
+      <h1 id="ending-title">KẾT THÚC: GIẢI THOÁT</h1>
+      <p id="ending-story-text">
+        Mặt trời dần ló rạng nơi đường chân trời, xua tan lớp sương mù dày đặc bao trùm ngôi làng suốt bao năm tháng.<br>
+        Bạn đỡ người thân rời khỏi khu Miếu Cũ trong ánh bình minh ấm áp đầu tiên sau đêm dài kinh hoàng.
+      </p>
+      <div class="ending-image-container">
+        <img id="ending-img" src="/assets/boicanh/lang/mieu lang.png" alt="Shrine Dawn">
+      </div>
+      <div id="ending-eerie-tease" class="hidden">
+        <p class="tease-quote">
+          "Dưới gốc đa cổ thụ, chiếc vòng cổ chó dính máu vẫn lặng lẽ nằm đó...<br>
+          Xa xa từ rặng núi, một tiếng gầm gừ quái dị xé tan không gian tĩnh mịch.<br><br>
+          <i>Đôi khi, một lời nguyền không kết thúc chỉ vì con quỷ đã chết.</i>"
+        </p>
+      </div>
+      <div class="ending-buttons">
+        <button class="btn btn-menu" id="btn-ending-return">QUAY VỀ MENU CHÍNH</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Debug Menu (F1) -->
+  <div id="debug-menu" class="hidden">
+    <div class="debug-header">
+      <span>🛠 DEVELOPER DEBUG MENU (F1)</span>
+      <button id="close-debug-btn">&times;</button>
+    </div>
+    <div class="debug-body">
+      <div class="debug-group">
+        <b>Chương Truyện (Chapters):</b>
+        <button class="btn-debug" id="dbg-ch-1">Chương 1: Trở về</button>
+        <button class="btn-debug" id="dbg-ch-2">Chương 2: Dấu chân</button>
+        <button class="btn-debug" id="dbg-ch-3">Chương 3: Bí mật</button>
+        <button class="btn-debug" id="dbg-ch-4">Chương 4: Miếu cũ</button>
+        <button class="btn-debug" id="dbg-ch-5">Chương 5: Đêm cuối (Boss)</button>
+      </div>
+      <div class="debug-group">
+        <b>Chuyển Khu Vực (Area Transition):</b>
+        <button class="btn-debug" id="dbg-tp-home">Khu Vực 1: Cổng & Nhà</button>
+        <button class="btn-debug" id="dbg-tp-well">Khu Vực 2: Giếng Làng</button>
+        <button class="btn-debug" id="dbg-tp-cemetery">Khu Vực 3: Nghĩa Địa & Đình</button>
+        <button class="btn-debug" id="dbg-tp-forest">Khu Vực 4: Cửa Rừng</button>
+        <button class="btn-debug" id="dbg-tp-shrine">Khu Vực 5: Miếu Cũ & Boss</button>
+      </div>
+      <div class="debug-group">
+        <b>Quỷ Cẩu, Thất Bại & Jumpscare:</b>
+        <button class="btn-debug btn-danger" id="dbg-trigger-jumpscare">Trigger Jumpscare & Death</button>
+        <button class="btn-debug" id="dbg-trigger-nightmare">Trigger Ác Mộng (Nightmare)</button>
+        <button class="btn-debug" id="dbg-spawn-quycau">Triệu hồi Quỷ Cẩu</button>
+        <button class="btn-debug" id="dbg-trigger-chase">Bật Chase Mode</button>
+        <button class="btn-debug" id="dbg-win-boss">Tiêu diệt Boss ngay</button>
+      </div>
+      <div class="debug-group">
+        <b>Nhiệm vụ & Manh mối:</b>
+        <button class="btn-debug" id="dbg-complete-quest">Hoàn thành Quest hiện tại</button>
+        <button class="btn-debug" id="dbg-give-all-clues">Mở khóa 8 Manh Mối</button>
+      </div>
+      <div class="debug-group">
+        <b>Hệ thống:</b>
+        <button class="btn-debug btn-danger" id="dbg-reset-save">Xóa Save & Reset Game</button>
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="/src/main.js"></script>
+</body>
+</html>
